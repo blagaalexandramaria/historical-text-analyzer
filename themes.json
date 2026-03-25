@@ -1,0 +1,7 @@
+{
+  "war": ["war", "battle", "army", "front", "military", "offensive", "troops"],
+  "politics": ["government", "political", "state", "power", "parliament", "regime"],
+  "revolution": ["revolution", "bolsheviks", "soviet", "rebellion", "mutiny"],
+  "nationalism": ["nation", "national", "romanian", "romanians", "hungarian", "transylvania"],
+  "diplomacy": ["treaty", "alliance", "peace", "conference", "negotiations"]
+}

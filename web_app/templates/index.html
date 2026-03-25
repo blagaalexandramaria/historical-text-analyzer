@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Historical Text Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Archivo:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="poster-header">
+        <div class="poster-title">
+          <span class="poster-kicker">Historical Lab</span>
+          <h1>Historical Text Similarity</h1>
+          <p>Compare speeches, articles, and historical documents in an archive‑inspired layout.</p>
+        </div>
+        <div class="poster-stamp" id="year-stamp" title="Archival marker">1969</div>
+      </header>
+
+      <section class="upload-panel">
+        <form method="post" enctype="multipart/form-data" class="upload-form">
+          <div class="upload-group">
+            <label for="file1">File 1</label>
+            <div class="input-wrap">
+              <span class="input-icon">📄</span>
+              <input id="file1" name="file1" type="file" accept=".txt,.docx,.pdf" required />
+            </div>
+          </div>
+          <div class="upload-group">
+            <label for="file2">File 2</label>
+            <div class="input-wrap">
+              <span class="input-icon">📄</span>
+              <input id="file2" name="file2" type="file" accept=".txt,.docx,.pdf" required />
+            </div>
+          </div>
+          <div class="upload-group">
+            <label for="common_limit">Common words per page</label>
+            <input id="common_limit" name="common_limit" type="range" min="10" max="50" step="5" value="{{ request.form.get('common_limit', request.args.get('common_limit', 20)) }}" />
+            <span class="range-value" data-range="common_limit">20 terms</span>
+          </div>
+          <div class="upload-group">
+            <label for="list_limit">List limit</label>
+            <input id="list_limit" name="list_limit" type="range" min="5" max="20" step="5" value="{{ request.form.get('list_limit', request.args.get('list_limit', 10)) }}" />
+            <span class="range-value" data-range="list_limit">Top 10</span>
+          </div>
+          <button type="submit" class="glass-button cta">Analyze<span class="cta-icon">⚡</span></button>
+        </form>
+        <div class="upload-note">
+          Accepts .txt, .docx, .pdf · Max 10MB
+        </div>
+        {% if error %}
+          <p class="error">{{ error }}</p>
+        {% endif %}
+      </section>
+
+      {% if result %}
+        <section class="poster-grid">
+          <article class="panel">
+            <span class="panel-kicker">Charts</span>
+            <p>Open the charts page for a dedicated visualization layout.</p>
+            <a class="glass-button small" href="/charts">Open charts</a>
+          </article>
+
+          <article class="panel decorative">
+            <div class="image-slot" data-slot="1"></div>
+          </article>
+
+          <article class="panel tall">
+            <span class="panel-kicker">Similarity</span>
+            <div class="panel-metric">{{ result.similarity }}</div>
+            <p class="panel-note">Jaccard index for the filtered vocabulary.</p>
+            <p class="panel-note">TF‑IDF cosine: {{ result.tfidf_similarity }}</p>
+            <div class="panel-footer">An editorial comparison</div>
+          </article>
+
+          <article class="panel decorative accent">
+            <div class="image-slot" data-slot="2"></div>
+          </article>
+
+          <article class="panel decorative">
+            <div class="image-slot" data-slot="3"></div>
+          </article>
+
+
+          <article class="panel">
+            <span class="panel-kicker">Common Words</span>
+            <div class="panel-number">{{ result.common_count }}</div>
+            <p class="panel-note">Showing first {{ result.common_preview_limit }} terms.</p>
+            <div class="pill-grid">
+              {% for word in result.common_preview %}
+                <span class="pill">{{ word }}</span>
+              {% endfor %}
+            </div>
+            <div class="pager">
+              {% if result.common_has_prev %}
+                <a class="glass-button small" href="/?common_page={{ result.common_page - 1 }}&common_limit={{ result.common_preview_limit }}&list_limit={{ request.args.get('list_limit', 10) }}">&#x2039; Previous</a>
+              {% endif %}
+              <span>Page {{ result.common_page }} / {{ result.common_total_pages }}</span>
+              {% if result.common_has_next %}
+                <a class="glass-button small" href="/?common_page={{ result.common_page + 1 }}&common_limit={{ result.common_preview_limit }}&list_limit={{ request.args.get('list_limit', 10) }}">Next &#x203A;</a>
+              {% endif %}
+            </div>
+          </article>
+
+          <article class="panel dark">
+            <span class="panel-kicker">Top Terms</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <ul>
+                  {% for word, freq in result.top1 %}
+                    <li><strong>{{ word }}</strong> · {{ freq }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <ul>
+                  {% for word, freq in result.top2 %}
+                    <li><strong>{{ word }}</strong> · {{ freq }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+            <div class="pager">
+              {% if result.list_has_prev %}
+                <a class="glass-button small" href="/?list_page={{ result.list_page - 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Prev</a>
+              {% endif %}
+              <span>Page {{ result.list_page }} / {{ result.list_total_pages }}</span>
+              {% if result.list_has_next %}
+                <a class="glass-button small" href="/?list_page={{ result.list_page + 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Show more</a>
+              {% endif %}
+            </div>
+          </article>
+
+          <article class="panel">
+            <span class="panel-kicker">Top Common Terms</span>
+            <ul>
+              {% for word, freq in result.top_common %}
+                <li><strong>{{ word }}</strong> · {{ freq }}</li>
+              {% endfor %}
+            </ul>
+            <div class="pager">
+              {% if result.list_has_prev %}
+                <a class="glass-button small" href="/?list_page={{ result.list_page - 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Prev</a>
+              {% endif %}
+              <span>Page {{ result.list_page }} / {{ result.list_total_pages }}</span>
+              {% if result.list_has_next %}
+                <a class="glass-button small" href="/?list_page={{ result.list_page + 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Show more</a>
+              {% endif %}
+            </div>
+          </article>
+
+
+          <article class="panel">
+            <span class="panel-kicker">Unique Terms</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <ul>
+                  {% for word, freq in result.unique1 %}
+                    <li><strong>{{ word }}</strong> · {{ freq }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <ul>
+                  {% for word, freq in result.unique2 %}
+                    <li><strong>{{ word }}</strong> · {{ freq }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+            <div class="pager">
+              {% if result.list_has_prev %}
+                <a class="glass-button small" href="/?list_page={{ result.list_page - 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Prev</a>
+              {% endif %}
+              <span>Page {{ result.list_page }} / {{ result.list_total_pages }}</span>
+              {% if result.list_has_next %}
+                <a class="glass-button small" href="/?list_page={{ result.list_page + 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Show more</a>
+              {% endif %}
+            </div>
+          </article>
+
+          <article class="panel">
+            <span class="panel-kicker">Years Mentioned</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <ul>
+                  {% for year, freq in result.years1 %}
+                    <li><strong>{{ year }}</strong> · {{ freq }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <ul>
+                  {% for year, freq in result.years2 %}
+                    <li><strong>{{ year }}</strong> · {{ freq }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+            <div class="pager">
+              {% if result.list_has_prev %}
+                <a class="glass-button small" href="/?list_page={{ result.list_page - 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Prev</a>
+              {% endif %}
+              <span>Page {{ result.list_page }} / {{ result.list_total_pages }}</span>
+              {% if result.list_has_next %}
+                <a class="glass-button small" href="/?list_page={{ result.list_page + 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Show more</a>
+              {% endif %}
+            </div>
+          </article>
+
+          <article class="panel tall">
+            <span class="panel-kicker">Theme Scores</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <ul>
+                  {% for theme, score in result.themes1 %}
+                    <li><strong>{{ theme }}</strong> · {{ score }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <ul>
+                  {% for theme, score in result.themes2 %}
+                    <li><strong>{{ theme }}</strong> · {{ score }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel accent">
+            <span class="panel-kicker">Propaganda Classification</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <p class="badge">{{ result.class1.label }}</p>
+                <p>Propaganda terms: {{ result.class1.propaganda_count }}</p>
+                <p>Neutral terms: {{ result.class1.neutral_count }}</p>
+                <p>Ratio: {{ "%.2f"|format(result.class1.ratio) }}</p>
+                <p>Density: {{ "%.3f"|format(result.class1.density) }}</p>
+                <a class="glass-button small" href="/propaganda/1">Detailed view</a>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <p class="badge">{{ result.class2.label }}</p>
+                <p>Propaganda terms: {{ result.class2.propaganda_count }}</p>
+                <p>Neutral terms: {{ result.class2.neutral_count }}</p>
+                <p>Ratio: {{ "%.2f"|format(result.class2.ratio) }}</p>
+                <p>Density: {{ "%.3f"|format(result.class2.density) }}</p>
+                <a class="glass-button small" href="/propaganda/2">Detailed view</a>
+              </div>
+            </div>
+          </article>
+
+        </section>
+      {% endif %}
+    </div>
+    <script>
+      document.querySelectorAll(".range-value").forEach((el) => {
+        const id = el.getAttribute("data-range");
+        const input = document.getElementById(id);
+        if (!input) return;
+        const update = () => {
+          if (id === "common_limit") {
+            el.textContent = `${input.value} terms`;
+          } else if (id === "list_limit") {
+            el.textContent = `Top ${input.value}`;
+          } else {
+            el.textContent = input.value;
+          }
+        };
+        update();
+        input.addEventListener("input", update);
+      });
+      const images = {{ image_files | tojson }};
+      const slots = Array.from(document.querySelectorAll(".image-slot"));
+      if (images.length && slots.length) {
+        const shuffled = [...images].sort(() => Math.random() - 0.5);
+        slots.forEach((slot, index) => {
+          const file = shuffled[index % shuffled.length];
+          const img = document.createElement("img");
+          img.src = `/static/images/${file}`;
+          img.alt = "Archival image";
+          img.loading = "lazy";
+          slot.appendChild(img);
+        });
+      }
+
+      const yearStamp = document.getElementById("year-stamp");
+      if (yearStamp) {
+        const years = [1867, 1899, 1914, 1918, 1939, 1945, 1969, 1979, 1989];
+        yearStamp.addEventListener("mouseenter", () => {
+          const next = years[Math.floor(Math.random() * years.length)];
+          yearStamp.textContent = String(next);
+        });
+      }
+    </script>
+  </body>
+</html>

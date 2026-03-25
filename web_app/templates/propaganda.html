@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Propaganda Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Archivo:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="poster-header">
+        <div class="poster-title">
+          <span class="poster-kicker">Historical Lab</span>
+          <h1>Propaganda Breakdown</h1>
+          <p>Detailed indicators for the selected document.</p>
+        </div>
+        <div class="poster-stamp">Archive</div>
+      </header>
+
+      <section class="upload-panel">
+        <a class="glass-button" href="/">Back to analysis</a>
+      </section>
+
+      {% if error %}
+        <section class="upload-panel">
+          <p class="error">{{ error }}</p>
+        </section>
+      {% endif %}
+
+      {% if result %}
+        <section class="poster-grid">
+          <article class="panel tall">
+            <span class="panel-kicker">File {{ file_id }}</span>
+            <div class="panel-metric">{{ result.label }}</div>
+            <p>Propaganda terms: {{ result.propaganda_count }}</p>
+            <p>Neutral terms: {{ result.neutral_count }}</p>
+            <p>Ratio: {{ "%.2f"|format(result.ratio) }}</p>
+            <p>Density: {{ "%.3f"|format(result.density) }}</p>
+          </article>
+
+          <article class="panel">
+            <span class="panel-kicker">Top Propaganda Terms (File {{ file_id }})</span>
+            <ul>
+              {% for item in result.top_terms %}
+                <li><strong>{{ item.term }}</strong> · {{ item.count }}</li>
+              {% endfor %}
+            </ul>
+          </article>
+        </section>
+      {% endif %}
+    </div>
+  </body>
+</html>

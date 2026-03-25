@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Charts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Archivo:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="poster-header">
+        <div class="poster-title">
+          <span class="poster-kicker">Historical Lab</span>
+          <h1>Charts Overview</h1>
+          <p>Dedicated layout for visual comparisons.</p>
+        </div>
+        <div class="poster-stamp">Charts</div>
+      </header>
+
+      <section class="upload-panel">
+        <a class="glass-button" href="/">Back to analysis</a>
+      </section>
+
+      {% if error %}
+        <section class="upload-panel">
+          <p class="error">{{ error }}</p>
+        </section>
+      {% endif %}
+
+      {% if result %}
+        <section class="chart-page-grid">
+          <div class="chart-card">
+            <h3>Top Terms (File 1)</h3>
+            <canvas id="chartTop1"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Top Terms (File 2)</h3>
+            <canvas id="chartTop2"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Top Common Terms</h3>
+            <canvas id="chartCommon"></canvas>
+          </div>
+          <div class="chart-card wide">
+            <h3>Theme Scores</h3>
+            <canvas id="chartThemes"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Similarity</h3>
+            <canvas id="chartSimilarity"></canvas>
+          </div>
+        </section>
+      {% endif %}
+    </div>
+
+    {% if result %}
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+      <script>
+        const chartData = {{ result | tojson }};
+
+        const baseOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: {
+                color: "#2b2722",
+                font: { size: 10 },
+                maxRotation: 35,
+                minRotation: 35,
+                autoSkip: false,
+              },
+            },
+            y: { ticks: { color: "#2b2722", font: { size: 10 } } },
+          },
+          plugins: {
+            legend: { labels: { color: "#2b2722" } },
+          },
+          layout: {
+            padding: { bottom: 8 },
+          },
+        };
+
+        function createBarChart(canvasId, labels, values, color, labelText) {
+          const ctx = document.getElementById(canvasId);
+          if (!ctx) return;
+          new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [{ label: labelText, data: values, backgroundColor: color }],
+            },
+            options: baseOptions,
+          });
+        }
+
+        createBarChart("chartTop1", chartData.top1.labels, chartData.top1.values, "#b08956", "Frequency");
+        createBarChart("chartTop2", chartData.top2.labels, chartData.top2.values, "#8c6a3f", "Frequency");
+        createBarChart("chartCommon", chartData.common.labels, chartData.common.values, "#c8a06a", "Frequency");
+
+        const themeCtx = document.getElementById("chartThemes");
+        if (themeCtx) {
+          new Chart(themeCtx, {
+            type: "bar",
+            data: {
+              labels: chartData.themes.labels,
+              datasets: [
+                { label: "File 1", data: chartData.themes.values1, backgroundColor: "#4e79a7" },
+                { label: "File 2", data: chartData.themes.values2, backgroundColor: "#e15759" },
+              ],
+            },
+            options: baseOptions,
+          });
+        }
+
+        const simCtx = document.getElementById("chartSimilarity");
+        if (simCtx) {
+          new Chart(simCtx, {
+            type: "doughnut",
+            data: {
+              labels: ["Similarity", "Difference"],
+              datasets: [
+                {
+                  data: [chartData.similarity, 100 - chartData.similarity],
+                  backgroundColor: ["#b08956", "#efe4d0"],
+                  borderWidth: 0,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: "bottom", labels: { color: "#2b2722" } },
+              },
+            },
+          });
+        }
+      </script>
+    {% endif %}
+  </body>
+</html>
