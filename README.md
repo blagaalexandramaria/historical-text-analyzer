@@ -64,7 +64,7 @@ It can compare texts, extract themes, detect propaganda patterns, and visualize 
 ---
 
 ## Project Structure
-
+```bash
 history-text/
 │
 ├── main.py                  # Tkinter GUI application
@@ -95,7 +95,7 @@ history-text/
 │
 ├── requirements.txt
 └── README.md
-
+```
 ---
 
 ## Installation
