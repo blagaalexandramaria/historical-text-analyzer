@@ -42,6 +42,15 @@
             <p>Neutral terms: {{ result.neutral_count }}</p>
             <p>Ratio: {{ "%.2f"|format(result.ratio) }}</p>
             <p>Density: {{ "%.3f"|format(result.density) }}</p>
+            <p>Rhetoric score: {{ "%.2f"|format(result.rhetoric_score) }}</p>
+            <p>Intensifiers: {{ result.intensifier_count }}</p>
+            <p>Generalizations: {{ result.generalization_count }}</p>
+            <p>Polarization markers: {{ result.polarization_count }}</p>
+            <p>ML label: {{ result.ml_label }}</p>
+            {% if result.ml_confidence is not none %}
+              <p>ML confidence: {{ "%.2f"|format(result.ml_confidence) }}</p>
+            {% endif %}
+            <p>Classifier agreement: {{ result.model_agreement }}</p>
           </article>
 
           <article class="panel">
@@ -49,6 +58,16 @@
             <ul>
               {% for item in result.top_terms %}
                 <li><strong>{{ item.term }}</strong> · {{ item.count }}</li>
+              {% endfor %}
+            </ul>
+          </article>
+
+          <article class="panel">
+            <span class="panel-kicker">ML Evidence (File {{ file_id }})</span>
+            <p class="panel-note">{{ result.ml_method }}</p>
+            <ul>
+              {% for item in result.ml_top_terms %}
+                <li><strong>{{ item.term }}</strong> · {{ item.weight }}</li>
               {% endfor %}
             </ul>
           </article>

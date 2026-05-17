@@ -8,8 +8,8 @@ Includes:
 - extraction of relevant historical years
 """
 
-from collections import Counter
 import math
+from collections import Counter
 
 
 def jaccard_similarity(words1: list[str], words2: list[str]) -> float:
@@ -49,7 +49,9 @@ def top_words(words: list[str], n: int = 10) -> list[tuple[str, int]]:
     return counter.most_common(n)
 
 
-def top_common_words(words1: list[str], words2: list[str], n: int = 10) -> list[tuple[str, int]]:
+def top_common_words(
+    words1: list[str], words2: list[str], n: int = 10
+) -> list[tuple[str, int]]:
     """
     Returns the most relevant common words between two texts.
 
@@ -68,7 +70,9 @@ def top_common_words(words1: list[str], words2: list[str], n: int = 10) -> list[
     return ranked[:n]
 
 
-def unique_words(words1: list[str], words2: list[str], n: int = 10) -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
+def unique_words(
+    words1: list[str], words2: list[str], n: int = 10
+) -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
     """
     Returns the most frequent words that are unique to each text.
 

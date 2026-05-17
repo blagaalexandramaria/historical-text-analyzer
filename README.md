@@ -19,18 +19,30 @@ It can compare texts, extract themes, detect propaganda patterns, and visualize 
 - Text cleaning and normalization
 - Tokenization 
 - Stop-word removal (custom + fallback)
+- Lemmatization with spaCy, with a local fallback if the model is missing
+- N-gram extraction for historical expressions
 
 ### NLP Analysis
 - Jaccard similarity 
 - TF-IDF cosine similarity
+- TF-IDF with n-grams, sublinear TF scaling, max_df/min_df filtering
+- Semantic cosine similarity with sentence-transformers embeddings
 - Top words / common words / unique words
 - Year extraction (historical timeline detection)
 - Theme analysis (war, politics, revolution, etc.)
+- Automatic topic modeling with LDA
+- Named Entity Recognition for people, places, organizations, nations and events
+- YAKE keyword extraction with frequency-ranked fallback
+- Rule-based historical sentiment/framing analysis
+- Historical interpretation summary for thematic, vocabulary and rhetorical differences
 
 ### Propaganda Detection
 - Keyword-based classification
+- ML classification with TF-IDF + Logistic Regression
+- Rule-based classifier vs ML classifier comparison
 - Propaganda vs neutral text scoring
 - Density and ratio analysis
+- Rhetorical markers: intensifiers, generalizations and polarization terms
 
 ### Interfaces
 - Desktop GUI (Tkinter)
@@ -61,6 +73,9 @@ It can compare texts, extract themes, detect propaganda patterns, and visualize 
 ### Highlighted Differences
 ![Highlight](screenshots/highlight.png)
 
+### Demo GIF
+![Demo](screenshots/demo.gif)
+
 ---
 
 ## Project Structure
@@ -77,14 +92,18 @@ history-text/
 ├── themes.py                # Fallback themes
 ├── stop_words.json          # Stop words
 ├── stop_words.py            # Fallback stop words
+├── historical_interpretation.py # Historical interpretation summaries
 ├── data/                    # Example texts
+├── tests/                   # pytest coverage
+├── scripts/                 # Utility scripts
 │
 ├── screenshots/             # Project images (README)
 │   ├── home.png
 │   ├── results.png
 │   ├── charts.png
 │   ├── propaganda.png
-│   └── highlight.png
+│   ├── highlight.png
+│   └── demo.gif
 │
 ├── web_app/
 │   ├── app.py              # Flask app
@@ -94,6 +113,9 @@ history-text/
 │       └── styles.css
 │
 ├── requirements.txt
+├── requirements-dev.txt
+├── pyproject.toml
+├── LICENSE
 └── README.md
 ```
 ---
@@ -113,6 +135,18 @@ source .venv/bin/activate   # Mac/Linux
 Install dependencies:
 ```bash
 pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+```
+
+The application still runs without the larger NLP models, but advanced NER,
+lemmatization and semantic similarity become stronger when they are installed.
+
+Install development tools:
+```bash
+pip install -r requirements-dev.txt
+black .
+isort .
+pytest
 ```
 
 ---
@@ -145,13 +179,20 @@ Then open in browser:
 - Extract important years (timeline)
 - Detect dominant themes
 - Highlight propaganda-related language
+- Compare semantic similarity, not only word overlap
+- Discover automatic topics and named entities
+- Extract interpretable keywords and historical sentiment indicators
+- Compare rule-based propaganda detection against an ML baseline
+- Generate a short demo GIF from screenshots
   
 ---
 
 ## What I Learned
 - Natural Language Processing pipelines
 - Text preprocessing techniques
-- Similarity metrics (Jaccard, TF-IDF)
+- Similarity metrics (Jaccard, TF-IDF, n-gram TF-IDF, embeddings)
+- LDA topic modeling, NER, keyword extraction and lightweight ML classification
+- Writing tests for NLP preprocessing and model outputs
 - GUI development with Tkinter
 - Web development with Flask
 - Data visualization (Chart.js)
@@ -174,35 +215,18 @@ Used strictly for educational purposes.
 
 ## Image Credits
 
-The images used in the interface were sourced from Pinterest:
-- Clock.jpg
-  https://es.pinterest.com/pin/595460382027290860/
-- Train.jpg
-  https://es.pinterest.com/pin/595460382027290855/
-- Manuscripts.jpg
-  https://es.pinterest.com/pin/595460382027290855/
-- Giovanni-laterano-text.jpg
-  https://es.pinterest.com/pin/595460382027290888/
-- Statue.jpg
-  https://es.pinterest.com/pin/595460382027290885/
-- Filipino-art.jpg
-  https://es.pinterest.com/pin/595460382027290875/
-- Old-vintage-map.jpg
-  https://es.pinterest.com/pin/595460382027290834/
-- History-collage.jpg
-  https://es.pinterest.com/pin/595460382027290830/
-- Vintage-pictures.jpg
-  https://es.pinterest.com/pin/595460382027290830/
+The interface images were replaced with public-domain or no-known-restrictions
+files from Wikimedia Commons. Full per-file attribution is in
+`web_app/static/images/IMAGE_SOURCES.md`.
 
 ---
 
 ## Possible Improvements
 
-- Machine learning classification (scikit-learn)
-- Named Entity Recognition (NER)
-- More advanced propaganda detection
 - Multi-text comparison
 - REST API version
+- Larger curated propaganda dataset for stronger ML evaluation
+- Package refactor into `historical_text_analyzer/nlp`, `web`, `gui`, `data`
 
 ---
 
@@ -215,4 +239,4 @@ Computer Science Student
 
 ## License
 
-This project is for educational purposes.
+MIT License. See `LICENSE`.

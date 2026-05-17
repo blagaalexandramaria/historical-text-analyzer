@@ -10,15 +10,14 @@ Responsibilities:
 """
 
 import os
-import re
 import queue
+import re
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 
-from text_processing import read_text_file
 from analysis_service import analyze_raw_texts
-
+from text_processing import read_text_file
 
 # Supported file formats for analysis
 SUPPORTED_TYPES = (
@@ -27,6 +26,13 @@ SUPPORTED_TYPES = (
     ("PDF files", "*.pdf"),
     ("All files", "*.*"),
 )
+
+
+def _format_confidence(value: object) -> str:
+    """Formats optional classifier confidence values for display."""
+    if isinstance(value, (int, float)):
+        return f"{float(value):.2f}"
+    return "unavailable"
 
 
 class HistoricalTextAnalyzerGUI:
@@ -129,6 +135,7 @@ class HistoricalTextAnalyzerGUI:
             ("themes", "Themes"),
             ("years", "Years"),
             ("propaganda", "Propaganda"),
+            ("interpretation", "Interpretation"),
             ("important", "Important"),
         ):
             frame = ttk.Frame(self.tabs)
@@ -182,7 +189,9 @@ class HistoricalTextAnalyzerGUI:
             messagebox.showerror("Missing files", "Please select two files.")
             return
 
-        if os.path.abspath(self.selected_file_1) == os.path.abspath(self.selected_file_2):
+        if os.path.abspath(self.selected_file_1) == os.path.abspath(
+            self.selected_file_2
+        ):
             messagebox.showerror("Same file", "Please select two different files.")
             return
 
@@ -266,6 +275,8 @@ class HistoricalTextAnalyzerGUI:
         raw_text2 = data["raw_text2"]  # type: ignore[assignment]
         similarity = data["similarity"]  # type: ignore[assignment]
         tfidf_similarity = data["tfidf_similarity"]  # type: ignore[assignment]
+        advanced_tfidf_similarity = data["advanced_tfidf_similarity"]  # type: ignore[assignment]
+        semantic_similarity = data["semantic_similarity"]  # type: ignore[assignment]
         common = data["common"]  # type: ignore[assignment]
         top1 = data["top1"]  # type: ignore[assignment]
         top2 = data["top2"]  # type: ignore[assignment]
@@ -279,6 +290,18 @@ class HistoricalTextAnalyzerGUI:
         classification1 = data["classification1"]  # type: ignore[assignment]
         classification2 = data["classification2"]  # type: ignore[assignment]
         term_groups = data["term_groups"]  # type: ignore[assignment]
+        ngrams1 = data["ngrams1"]  # type: ignore[assignment]
+        ngrams2 = data["ngrams2"]  # type: ignore[assignment]
+        entities1 = data["entities1"]  # type: ignore[assignment]
+        entities2 = data["entities2"]  # type: ignore[assignment]
+        sentiment1 = data["sentiment1"]  # type: ignore[assignment]
+        sentiment2 = data["sentiment2"]  # type: ignore[assignment]
+        keywords1 = data["keywords1"]  # type: ignore[assignment]
+        keywords2 = data["keywords2"]  # type: ignore[assignment]
+        topics = data["topics"]  # type: ignore[assignment]
+        historical_interpretation = data[
+            "historical_interpretation"
+        ]  # type: ignore[assignment]
 
         # Store a smaller subset of results for charts window
         self.last_results = {
@@ -300,6 +323,20 @@ class HistoricalTextAnalyzerGUI:
 
         write_to("similarity", "Jaccard similarity: %.2f%%" % similarity)
         write_to("similarity", "TF-IDF cosine similarity: %.2f%%" % tfidf_similarity)
+        if advanced_tfidf_similarity is not None:
+            write_to(
+                "similarity",
+                "TF-IDF n-grams similarity: %.2f%%" % advanced_tfidf_similarity,
+            )
+        else:
+            write_to("similarity", "TF-IDF n-grams similarity: unavailable")
+        if semantic_similarity is not None:
+            write_to(
+                "similarity",
+                "Semantic embedding similarity: %.2f%%" % semantic_similarity,
+            )
+        else:
+            write_to("similarity", "Semantic embedding similarity: unavailable")
 
         write_to("words", "=== Common Words ===")
         write_to("words", f"Count: {len(common)}")
@@ -323,6 +360,16 @@ class HistoricalTextAnalyzerGUI:
             write_to("words", f"{word}: {freq}")
         write_to("words", "")
 
+        write_to("words", "=== N-grams (File 1) ===")
+        for phrase, freq in ngrams1[:10]:
+            write_to("words", f"{phrase}: {freq}")
+        write_to("words", "")
+
+        write_to("words", "=== N-grams (File 2) ===")
+        for phrase, freq in ngrams2[:10]:
+            write_to("words", f"{phrase}: {freq}")
+        write_to("words", "")
+
         write_to("words", "=== Unique Words (File 1) ===")
         for word, freq in unique1:
             write_to("words", f"{word}: {freq}")
@@ -342,20 +389,84 @@ class HistoricalTextAnalyzerGUI:
             write_to("years", f"{year}: {freq}")
 
         write_to("themes", "=== Theme Scores (File 1) ===")
-        for theme, score in sorted(themes1.items(), key=lambda item: item[1], reverse=True):
+        for theme, score in sorted(
+            themes1.items(), key=lambda item: item[1], reverse=True
+        ):
             write_to("themes", f"{theme}: {score}")
         write_to("themes", "")
 
         write_to("themes", "=== Theme Scores (File 2) ===")
-        for theme, score in sorted(themes2.items(), key=lambda item: item[1], reverse=True):
+        for theme, score in sorted(
+            themes2.items(), key=lambda item: item[1], reverse=True
+        ):
             write_to("themes", f"{theme}: {score}")
+        write_to("themes", "")
+
+        write_to("themes", "=== Automatic Topics ===")
+        write_to("themes", f"Method: {topics['method']}")
+        for topic in topics["topics"]:
+            write_to("themes", f"{topic['topic']}: {', '.join(topic['terms'])}")
+        write_to("themes", "")
+
+        write_to("themes", "=== Named Entities (File 1) ===")
+        write_to("themes", f"Method: {entities1['method']}")
+        for entity in entities1["entities"][:10]:
+            write_to(
+                "themes", f"{entity['text']} ({entity['label']}): {entity['count']}"
+            )
+        write_to("themes", "")
+
+        write_to("themes", "=== Named Entities (File 2) ===")
+        write_to("themes", f"Method: {entities2['method']}")
+        for entity in entities2["entities"][:10]:
+            write_to(
+                "themes", f"{entity['text']} ({entity['label']}): {entity['count']}"
+            )
+        write_to("themes", "")
+
+        write_to("themes", "=== Historical Sentiment ===")
+        write_to("themes", f"File 1: {sentiment1['label']} ({sentiment1['score']:.2f})")
+        write_to("themes", f"File 2: {sentiment2['label']} ({sentiment2['score']:.2f})")
+        write_to("themes", "")
+
+        write_to("themes", "=== Keywords ===")
+        write_to("themes", f"File 1 method: {keywords1['method']}")
+        for item in keywords1["keywords"][:8]:
+            write_to("themes", f"File 1: {item['keyword']} ({item['score']})")
+        write_to("themes", f"File 2 method: {keywords2['method']}")
+        for item in keywords2["keywords"][:8]:
+            write_to("themes", f"File 2: {item['keyword']} ({item['score']})")
+
+        write_to("interpretation", "=== Historical Interpretation ===")
+        write_to("interpretation", historical_interpretation["summary"])
+        write_to("interpretation", "")
+        for observation in historical_interpretation["observations"]:
+            write_to("interpretation", f"- {observation}")
+        write_to("interpretation", "")
+        write_to(
+            "interpretation",
+            "Dominant themes: "
+            f"File 1 = {historical_interpretation['dominant_theme1']} | "
+            f"File 2 = {historical_interpretation['dominant_theme2']}",
+        )
+        write_to(
+            "interpretation",
+            "Sentiment/framing: "
+            f"File 1 = {historical_interpretation['sentiment1']} | "
+            f"File 2 = {historical_interpretation['sentiment2']}",
+        )
 
         write_to("important", "=== Important Terms (Highlighted) ===")
         if term_groups["common"] or term_groups["propaganda"]:
             if term_groups["common"]:
-                write_to("important", "Common terms: " + ", ".join(term_groups["common"]))
+                write_to(
+                    "important", "Common terms: " + ", ".join(term_groups["common"])
+                )
             if term_groups["propaganda"]:
-                write_to("important", "Propaganda terms: " + ", ".join(term_groups["propaganda"]))
+                write_to(
+                    "important",
+                    "Propaganda terms: " + ", ".join(term_groups["propaganda"]),
+                )
         else:
             write_to("important", "No important terms found.")
 
@@ -371,13 +482,27 @@ class HistoricalTextAnalyzerGUI:
             "propaganda",
             "Ratio (propaganda/neutral): "
             f"{classification1['ratio']:.2f} | "
-            f"Density: {classification1['density']:.3f}",
+            f"Density: {classification1['density']:.3f} | "
+            f"Rhetoric: {classification1['rhetoric_score']:.2f}",
         )
+        write_to(
+            "propaganda",
+            "ML classifier: "
+            f"{classification1['ml_label']} | "
+            f"Confidence: {_format_confidence(classification1['ml_confidence'])}",
+        )
+        write_to("propaganda", f"ML method: {classification1['ml_method']}")
         if classification1["top_terms"]:
             terms_preview = ", ".join(
                 f"{word}({count})" for word, count in classification1["top_terms"]
             )
             write_to("propaganda", f"Top propaganda terms: {terms_preview}")
+        if classification1["ml_top_terms"]:
+            ml_terms_preview = ", ".join(
+                f"{item['term']}({item['weight']})"
+                for item in classification1["ml_top_terms"]
+            )
+            write_to("propaganda", f"Top ML terms: {ml_terms_preview}")
 
         write_to("propaganda", "")
         write_to("propaganda", "=== Propaganda Classification (File 2) ===")
@@ -392,13 +517,27 @@ class HistoricalTextAnalyzerGUI:
             "propaganda",
             "Ratio (propaganda/neutral): "
             f"{classification2['ratio']:.2f} | "
-            f"Density: {classification2['density']:.3f}",
+            f"Density: {classification2['density']:.3f} | "
+            f"Rhetoric: {classification2['rhetoric_score']:.2f}",
         )
+        write_to(
+            "propaganda",
+            "ML classifier: "
+            f"{classification2['ml_label']} | "
+            f"Confidence: {_format_confidence(classification2['ml_confidence'])}",
+        )
+        write_to("propaganda", f"ML method: {classification2['ml_method']}")
         if classification2["top_terms"]:
             terms_preview = ", ".join(
                 f"{word}({count})" for word, count in classification2["top_terms"]
             )
             write_to("propaganda", f"Top propaganda terms: {terms_preview}")
+        if classification2["ml_top_terms"]:
+            ml_terms_preview = ", ".join(
+                f"{item['term']}({item['weight']})"
+                for item in classification2["ml_top_terms"]
+            )
+            write_to("propaganda", f"Top ML terms: {ml_terms_preview}")
 
         # Apply term highlighting in the words tab
         self.highlight_terms(term_groups)
@@ -473,8 +612,20 @@ class HistoricalTextAnalyzerGUI:
         values1 = [themes1[key] for key in theme_labels]
         values2 = [themes2[key] for key in theme_labels]
         x = range(len(theme_labels))
-        ax4.bar([i - 0.2 for i in x], values1, width=0.4, label="File 1", color=palette["green"])
-        ax4.bar([i + 0.2 for i in x], values2, width=0.4, label="File 2", color=palette["red"])
+        ax4.bar(
+            [i - 0.2 for i in x],
+            values1,
+            width=0.4,
+            label="File 1",
+            color=palette["green"],
+        )
+        ax4.bar(
+            [i + 0.2 for i in x],
+            values2,
+            width=0.4,
+            label="File 2",
+            color=palette["red"],
+        )
         ax4.set_title("Theme Scores")
         ax4.set_xticks(list(x))
         ax4.set_xticklabels(theme_labels, rotation=30, ha="right", fontsize=8)
@@ -518,7 +669,11 @@ class HistoricalTextAnalyzerGUI:
             )
             if filepath:
                 figure.savefig(filepath, dpi=200, bbox_inches="tight")
-                sim_figure.savefig(filepath.replace(".png", "_similarity.png"), dpi=200, bbox_inches="tight")
+                sim_figure.savefig(
+                    filepath.replace(".png", "_similarity.png"),
+                    dpi=200,
+                    bbox_inches="tight",
+                )
                 messagebox.showinfo("Saved", f"Charts saved to: {filepath}")
 
         save_button = tk.Button(
@@ -690,7 +845,9 @@ class HistoricalTextAnalyzerGUI:
                 if not match_index:
                     break
                 end = f"{match_index}+{len(term)}c"
-                self.output_boxes["words"].tag_add("highlight_propaganda", match_index, end)
+                self.output_boxes["words"].tag_add(
+                    "highlight_propaganda", match_index, end
+                )
                 start = end
 
 

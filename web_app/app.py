@@ -18,7 +18,6 @@ from pathlib import Path
 
 from flask import Flask, render_template, request, session
 
-
 # Add project root to Python path so shared modules can be imported
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -26,7 +25,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from analysis_service import analyze_raw_texts
 from text_processing import read_text_file
-
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # limit uploads to 10 MB
@@ -107,7 +105,8 @@ def index():
     image_dir = PROJECT_ROOT / "web_app" / "static" / "images"
     if image_dir.exists():
         image_files = sorted(
-            f.name for f in image_dir.iterdir()
+            f.name
+            for f in image_dir.iterdir()
             if f.is_file() and f.suffix.lower() in {".jpg", ".jpeg", ".png"}
         )
     else:
@@ -143,6 +142,18 @@ def index():
         return {
             "similarity": f"{analysis_data['similarity']:.2f}%",
             "tfidf_similarity": f"{analysis_data['tfidf_similarity']:.2f}%",
+            "advanced_tfidf_similarity": (
+                f"{analysis_data['advanced_tfidf_similarity']:.2f}%"
+                if analysis_data["advanced_tfidf_similarity"] is not None
+                else "Unavailable"
+            ),
+            "advanced_tfidf_method": analysis_data["advanced_tfidf_method"],
+            "semantic_similarity": (
+                f"{analysis_data['semantic_similarity']:.2f}%"
+                if analysis_data["semantic_similarity"] is not None
+                else "Unavailable"
+            ),
+            "semantic_method": analysis_data["semantic_method"],
             "common_count": total_common,
             "common_preview": common[start:end],
             "common_preview_limit": common_limit,
@@ -162,10 +173,26 @@ def index():
             "unique2": analysis_data["unique2"][list_start:list_end],
             "years1": analysis_data["years1"][list_start:list_end],
             "years2": analysis_data["years2"][list_start:list_end],
-            "themes1": sorted(analysis_data["themes1"].items(), key=lambda item: item[1], reverse=True),
-            "themes2": sorted(analysis_data["themes2"].items(), key=lambda item: item[1], reverse=True),
+            "themes1": sorted(
+                analysis_data["themes1"].items(), key=lambda item: item[1], reverse=True
+            ),
+            "themes2": sorted(
+                analysis_data["themes2"].items(), key=lambda item: item[1], reverse=True
+            ),
             "class1": analysis_data["classification1"],
             "class2": analysis_data["classification2"],
+            "lemmatization_method1": analysis_data["lemmatization_method1"],
+            "lemmatization_method2": analysis_data["lemmatization_method2"],
+            "ngrams1": analysis_data["ngrams1"][:list_limit],
+            "ngrams2": analysis_data["ngrams2"][:list_limit],
+            "entities1": analysis_data["entities1"],
+            "entities2": analysis_data["entities2"],
+            "sentiment1": analysis_data["sentiment1"],
+            "sentiment2": analysis_data["sentiment2"],
+            "keywords1": analysis_data["keywords1"],
+            "keywords2": analysis_data["keywords2"],
+            "topics": analysis_data["topics"],
+            "historical_interpretation": analysis_data["historical_interpretation"],
         }
 
     if request.method == "POST":
@@ -200,7 +227,9 @@ def index():
                 session["common_limit"] = common_limit
                 session["list_limit"] = list_limit
 
-                result = build_result(analysis, common_limit, list_limit, page, list_page)
+                result = build_result(
+                    analysis, common_limit, list_limit, page, list_page
+                )
 
                 classification1 = analysis["classification1"]
                 classification2 = analysis["classification2"]
@@ -222,8 +251,12 @@ def index():
                     },
                     "themes": {
                         "labels": list(analysis["themes1"].keys()),
-                        "values1": [analysis["themes1"][k] for k in analysis["themes1"].keys()],
-                        "values2": [analysis["themes2"][k] for k in analysis["themes1"].keys()],
+                        "values1": [
+                            analysis["themes1"][k] for k in analysis["themes1"].keys()
+                        ],
+                        "values2": [
+                            analysis["themes2"][k] for k in analysis["themes1"].keys()
+                        ],
                     },
                     "similarity": analysis["similarity"],
                 }
@@ -236,6 +269,15 @@ def index():
                         "neutral_count": classification1["neutral_count"],
                         "ratio": classification1["ratio"],
                         "density": classification1["density"],
+                        "rhetoric_score": classification1["rhetoric_score"],
+                        "intensifier_count": classification1["intensifier_count"],
+                        "generalization_count": classification1["generalization_count"],
+                        "polarization_count": classification1["polarization_count"],
+                        "ml_label": classification1["ml_label"],
+                        "ml_confidence": classification1["ml_confidence"],
+                        "ml_method": classification1["ml_method"],
+                        "ml_top_terms": classification1["ml_top_terms"],
+                        "model_agreement": classification1["model_agreement"],
                         "top_terms": [
                             {"term": term, "count": count}
                             for term, count in classification1["top_terms"]
@@ -247,6 +289,15 @@ def index():
                         "neutral_count": classification2["neutral_count"],
                         "ratio": classification2["ratio"],
                         "density": classification2["density"],
+                        "rhetoric_score": classification2["rhetoric_score"],
+                        "intensifier_count": classification2["intensifier_count"],
+                        "generalization_count": classification2["generalization_count"],
+                        "polarization_count": classification2["polarization_count"],
+                        "ml_label": classification2["ml_label"],
+                        "ml_confidence": classification2["ml_confidence"],
+                        "ml_method": classification2["ml_method"],
+                        "ml_top_terms": classification2["ml_top_terms"],
+                        "model_agreement": classification2["model_agreement"],
                         "top_terms": [
                             {"term": term, "count": count}
                             for term, count in classification2["top_terms"]
@@ -259,15 +310,21 @@ def index():
         analysis_id = session.get("analysis_id")
         analysis = _cache_get(analysis_id)
         if analysis:
-            common_limit = int(request.args.get("common_limit", session.get("common_limit", 20)))
-            list_limit = int(request.args.get("list_limit", session.get("list_limit", 10)))
+            common_limit = int(
+                request.args.get("common_limit", session.get("common_limit", 20))
+            )
+            list_limit = int(
+                request.args.get("list_limit", session.get("list_limit", 10))
+            )
             page = int(request.args.get("common_page", 1))
             list_page = int(request.args.get("list_page", 1))
             session["common_limit"] = common_limit
             session["list_limit"] = list_limit
             result = build_result(analysis, common_limit, list_limit, page, list_page)
 
-    return render_template("index.html", result=result, error=error, image_files=image_files)
+    return render_template(
+        "index.html", result=result, error=error, image_files=image_files
+    )
 
 
 @app.route("/propaganda/<file_id>")
@@ -277,13 +334,17 @@ def propaganda(file_id: str):
     """
     data = session.get("propaganda")
     if not data:
-        return render_template("propaganda.html", result=None, error="No analysis data.")
+        return render_template(
+            "propaganda.html", result=None, error="No analysis data."
+        )
 
     key = "file1" if file_id == "1" else "file2" if file_id == "2" else None
     if not key:
         return render_template("propaganda.html", result=None, error="Invalid file id.")
 
-    return render_template("propaganda.html", result=data[key], error=None, file_id=file_id)
+    return render_template(
+        "propaganda.html", result=data[key], error=None, file_id=file_id
+    )
 
 
 @app.route("/charts")

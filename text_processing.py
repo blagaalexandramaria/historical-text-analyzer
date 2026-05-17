@@ -15,7 +15,6 @@ from typing import Callable
 
 from stop_words import STOP_WORDS
 
-
 # Get absolute path to current directory (used for loading JSON files reliably)
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 STOP_WORDS_PATH = os.path.join(ROOT_DIR, "stop_words.json")
@@ -38,6 +37,7 @@ def load_stop_words() -> set[str]:
 
 class MissingDependencyError(RuntimeError):
     """Raised when an optional dependency (docx/pdf) is not installed."""
+
     pass
 
 

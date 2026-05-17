@@ -5,12 +5,11 @@ Assigns scores to predefined themes (e.g., war, politics)
 based on keyword frequency.
 """
 
-from collections import Counter
 import json
 import os
+from collections import Counter
 
 from themes import THEMES
-
 
 # Get absolute path to themes.json
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))

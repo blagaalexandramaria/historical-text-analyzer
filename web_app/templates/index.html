@@ -76,6 +76,8 @@
             <div class="panel-metric">{{ result.similarity }}</div>
             <p class="panel-note">Jaccard index for the filtered vocabulary.</p>
             <p class="panel-note">TF‑IDF cosine: {{ result.tfidf_similarity }}</p>
+            <p class="panel-note">TF‑IDF n‑grams: {{ result.advanced_tfidf_similarity }}</p>
+            <p class="panel-note">Semantic cosine: {{ result.semantic_similarity }}</p>
             <div class="panel-footer">An editorial comparison</div>
           </article>
 
@@ -110,6 +112,8 @@
 
           <article class="panel dark">
             <span class="panel-kicker">Top Terms</span>
+            <p class="panel-note">File 1: {{ result.lemmatization_method1 }}</p>
+            <p class="panel-note">File 2: {{ result.lemmatization_method2 }}</p>
             <div class="columns">
               <div>
                 <h3>File 1</h3>
@@ -136,6 +140,106 @@
               {% if result.list_has_next %}
                 <a class="glass-button small" href="/?list_page={{ result.list_page + 1 }}&common_page={{ result.common_page }}&common_limit={{ result.common_preview_limit }}&list_limit={{ result.list_limit }}">Show more</a>
               {% endif %}
+            </div>
+          </article>
+
+          <article class="panel">
+            <span class="panel-kicker">N-grams</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <ul>
+                  {% for phrase, freq in result.ngrams1 %}
+                    <li><strong>{{ phrase }}</strong> · {{ freq }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <ul>
+                  {% for phrase, freq in result.ngrams2 %}
+                    <li><strong>{{ phrase }}</strong> · {{ freq }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <span class="panel-kicker">Automatic Topics</span>
+            <p class="panel-note">{{ result.topics.method }}</p>
+            <ul>
+              {% for topic in result.topics.topics %}
+                <li><strong>{{ topic.topic }}</strong> · {{ topic.terms | join(", ") }}</li>
+              {% endfor %}
+            </ul>
+          </article>
+
+          <article class="panel tall">
+            <span class="panel-kicker">Named Entities</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <p class="panel-note">{{ result.entities1.method }}</p>
+                <ul>
+                  {% for item in result.entities1.entities %}
+                    <li><strong>{{ item.text }}</strong> · {{ item.label }} · {{ item.count }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <p class="panel-note">{{ result.entities2.method }}</p>
+                <ul>
+                  {% for item in result.entities2.entities %}
+                    <li><strong>{{ item.text }}</strong> · {{ item.label }} · {{ item.count }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <span class="panel-kicker">Keywords</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <p class="panel-note">{{ result.keywords1.method }}</p>
+                <ul>
+                  {% for item in result.keywords1.keywords %}
+                    <li><strong>{{ item.keyword }}</strong> · {{ item.score }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <p class="panel-note">{{ result.keywords2.method }}</p>
+                <ul>
+                  {% for item in result.keywords2.keywords %}
+                    <li><strong>{{ item.keyword }}</strong> · {{ item.score }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <span class="panel-kicker">Historical Sentiment</span>
+            <div class="columns">
+              <div>
+                <h3>File 1</h3>
+                <p class="badge">{{ result.sentiment1.label }}</p>
+                <p>Score: {{ "%.2f"|format(result.sentiment1.score) }}</p>
+                <p>Positive: {{ result.sentiment1.positive_count }}</p>
+                <p>Negative: {{ result.sentiment1.negative_count }}</p>
+              </div>
+              <div>
+                <h3>File 2</h3>
+                <p class="badge">{{ result.sentiment2.label }}</p>
+                <p>Score: {{ "%.2f"|format(result.sentiment2.score) }}</p>
+                <p>Positive: {{ result.sentiment2.positive_count }}</p>
+                <p>Negative: {{ result.sentiment2.negative_count }}</p>
+              </div>
             </div>
           </article>
 
@@ -242,6 +346,16 @@
             </div>
           </article>
 
+          <article class="panel tall">
+            <span class="panel-kicker">Historical Interpretation</span>
+            <p class="panel-note">{{ result.historical_interpretation.summary }}</p>
+            <ul>
+              {% for observation in result.historical_interpretation.observations %}
+                <li>{{ observation }}</li>
+              {% endfor %}
+            </ul>
+          </article>
+
           <article class="panel accent">
             <span class="panel-kicker">Propaganda Classification</span>
             <div class="columns">
@@ -252,6 +366,11 @@
                 <p>Neutral terms: {{ result.class1.neutral_count }}</p>
                 <p>Ratio: {{ "%.2f"|format(result.class1.ratio) }}</p>
                 <p>Density: {{ "%.3f"|format(result.class1.density) }}</p>
+                <p>Rhetoric score: {{ "%.2f"|format(result.class1.rhetoric_score) }}</p>
+                <p>ML label: {{ result.class1.ml_label }}</p>
+                {% if result.class1.ml_confidence is not none %}
+                  <p>ML confidence: {{ "%.2f"|format(result.class1.ml_confidence) }}</p>
+                {% endif %}
                 <a class="glass-button small" href="/propaganda/1">Detailed view</a>
               </div>
               <div>
@@ -261,6 +380,11 @@
                 <p>Neutral terms: {{ result.class2.neutral_count }}</p>
                 <p>Ratio: {{ "%.2f"|format(result.class2.ratio) }}</p>
                 <p>Density: {{ "%.3f"|format(result.class2.density) }}</p>
+                <p>Rhetoric score: {{ "%.2f"|format(result.class2.rhetoric_score) }}</p>
+                <p>ML label: {{ result.class2.ml_label }}</p>
+                {% if result.class2.ml_confidence is not none %}
+                  <p>ML confidence: {{ "%.2f"|format(result.class2.ml_confidence) }}</p>
+                {% endif %}
                 <a class="glass-button small" href="/propaganda/2">Detailed view</a>
               </div>
             </div>
